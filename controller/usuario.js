@@ -1,4 +1,4 @@
-//var Puntuacion = require('../models/puntuacion')
+var Puntuacion = require('../models/puntuacion')
 const Usuario = require('../models/usuario')
 const Joi = require('@hapi/joi')
 const bcrypt = require('bcrypt')
@@ -128,18 +128,24 @@ async function update(req,res){
 
 
 async function insertaPuntuacion(req,res){
+    // validar los datos de la puntuacion
+
     // parametro id = idUsuario
     // Body = datos de la puntuacion
 
-    // Obtener el id del usuario
     // Creamos un objeto de tipo puntuacion(rellenado con el body)
-    // Buscar el usuario por idUsuario
+    let puntuacionNueva = new Puntuacion(req.body)
     // Guardar la puntuacion en la BD
-
+    let puntuacionGuardada = await puntuacionNueva.save()
+    // Buscar el usuario por idUsuario
+    let usuarioEncontrado = await Usuario.findById(req.params.id)
     // Asignar (push) la puntuacion al usuario
+    usuarioEncontrado.puntuaciones.push(puntuacionGuardada)
     // Guardar el usuario
+    await usuarioEncontrado.save()
+    //TODO: esto lo hacemos mediante una transaccion
 
-    // TODO esto lo hacemos mediante una transaccion
+    res.status(200).json({accion:'save', datos: usuarioEncontrado })
 }
 
 module.exports = {insertaPuntuacion, getAll, getById, registrar, login, remove, update}
