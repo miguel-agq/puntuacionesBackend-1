@@ -2,6 +2,7 @@
 const Usuario = require('../models/usuario')
 const Joi = require('@hapi/joi')
 const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 
 const schemaRegistrar = Joi.object({
     nombre: Joi.string().alphanum().min(3).max(30).required(),
@@ -35,7 +36,7 @@ async function getById(req,res){
     }
 }
 
-async function login(req, res){
+async function login(req, res){ // JWT Json Web Token
     // Validar todos los campos
     try{
         const {error, value} = await schemaLogin.validateAsync(req.body)
@@ -52,7 +53,16 @@ async function login(req, res){
     if(!passwordValidado) return res.status(400).send({accion:'login', mensaje:`error 3 en el usuario/contraseña`}) 
     
     // Crear y devolver el token
-
+    const configuracionToken = {
+        _id: usuarioEncontrado._id,
+        //rol: 'admin'
+        saludo: 'hola',
+        exp: Math.floor(Date.now() / 1000) + (60*60) // 1 hora
+    }
+    const token = jwt.sign( configuracionToken , process.env.TOKEN_SECRETO)
+    res.header('auth-token', token)
+    res.status(200).send(token)
+    //return res.status(200).send("LOGIN OK");
 }
 
 async function registrar(req, res){
@@ -116,6 +126,22 @@ async function update(req,res){
     }
 }
 
-module.exports = {getAll, getById, registrar, login, remove, update}
+
+async function insertaPuntuacion(req,res){
+    // parametro id = idUsuario
+    // Body = datos de la puntuacion
+
+    // Obtener el id del usuario
+    // Creamos un objeto de tipo puntuacion(rellenado con el body)
+    // Buscar el usuario por idUsuario
+    // Guardar la puntuacion en la BD
+
+    // Asignar (push) la puntuacion al usuario
+    // Guardar el usuario
+
+    // TODO esto lo hacemos mediante una transaccion
+}
+
+module.exports = {insertaPuntuacion, getAll, getById, registrar, login, remove, update}
 
 

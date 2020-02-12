@@ -9,6 +9,7 @@ let UsuarioSchema = Schema(
         password: {type:String, required:true, min:4},
         sexo: String,
         activado: Boolean,
+        rol: String,
         puntuaciones: [{type: Schema.ObjectId, ref:'Score'}]
     }
 )
