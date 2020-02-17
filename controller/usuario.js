@@ -3,6 +3,7 @@ const Usuario = require('../models/usuario')
 const Joi = require('@hapi/joi')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const mongoose = require('mongoose')
 
 const schemaRegistrar = Joi.object({
     nombre: Joi.string().alphanum().min(3).max(30).required(),
@@ -52,7 +53,7 @@ async function login(req, res){ // JWT Json Web Token
     const passwordValidado = await bcrypt.compare(req.body.password, usuarioEncontrado.password)
     if(!passwordValidado) return res.status(400).send({accion:'login', mensaje:`error 3 en el usuario/contraseña`}) 
     
-    // Crear y devolver el token
+    // Crear y devolver el token  
     const configuracionToken = {
         _id: usuarioEncontrado._id,
         //rol: 'admin'
@@ -133,21 +134,41 @@ async function insertaPuntuacion(req,res){
     // parametro id = idUsuario
     // Body = datos de la puntuacion
 
-    // Creamos un objeto de tipo puntuacion(rellenado con el body)
-    let puntuacionNueva = new Puntuacion(req.body)
-    // Guardar la puntuacion en la BD
-    let puntuacionGuardada = await puntuacionNueva.save()
-    // Buscar el usuario por idUsuario
-    let usuarioEncontrado = await Usuario.findById(req.params.id)
-    // Asignar (push) la puntuacion al usuario
-    usuarioEncontrado.puntuaciones.push(puntuacionGuardada)
-    // Guardar el usuario
-    await usuarioEncontrado.save()
-    //TODO: esto lo hacemos mediante una transaccion
+    const session = await mongoose.startSession()
+    try{
+        session.startTransaction()
+        // Creamos un objeto de tipo puntuacion(rellenado con el body)
+        let puntuacionNueva = new Puntuacion(req.body)
+        // Guardar la puntuacion en la BD
+        let puntuacionGuardada = await puntuacionNueva.save()
+        // Buscar el usuario por idUsuario
+        let usuarioEncontrado = await Usuario.findById(req.params.id)
+        // Asignar (push) la puntuacion al usuario
+        usuarioEncontrado.puntuaciones.push(puntuacionGuardada)
+        // Guardar el usuario
+        await usuarioEncontrado.save()
 
-    res.status(200).json({accion:'save', datos: usuarioEncontrado })
+        await session.commitTransaction()
+        res.status(200).json({accion:'save', datos: usuarioEncontrado })
+    }catch(err){
+        await session.abortTransaction()
+        res.status(500).json({accion:'save', mensaje:'Error al guardar la puntuacion'})
+    }finally{
+        session.endSession()
+    }
 }
 
-module.exports = {insertaPuntuacion, getAll, getById, registrar, login, remove, update}
+
+async function getPuntuacionesUsuario(req,res){
+    try{
+        let usuarioEncontrado = await Usuario.findById(req.params.id).populate('puntuaciones')
+        res.status(200).json({accion:'get one', datos: usuarioEncontrado })
+    }catch(err){
+        res.status(500).json({accion:'save', mensaje:'Error al obtener las puntuaciones del usuario:'+err})
+    }
+}
+
+
+module.exports = {getPuntuacionesUsuario, insertaPuntuacion, getAll, getById, registrar, login, remove, update}
 
 
