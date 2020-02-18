@@ -62,7 +62,7 @@ async function login(req, res){ // JWT Json Web Token
     }
     const token = jwt.sign( configuracionToken , process.env.TOKEN_SECRETO)
     res.header('auth-token', token)
-    res.status(200).send(token)
+    res.status(200).send(  {token}  )
     //return res.status(200).send("LOGIN OK");
 }
 
